@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>To-Do List with Date & Time</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f172a;
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      color: #f1f5f9;
+    }
+    .container {
+      width: 100%;
+      max-width: 480px;
+      background: #1e293b;
+      padding: 24px;
+      border-radius: 14px;
+      box-shadow: 0 0 25px rgba(56,189,248,0.4);
+      animation: fadeIn 0.6s ease-in;
+    }
+    h1 {
+      margin: 0 0 20px 0;
+      text-align: center;
+      color: #38bdf8;
+      text-shadow: 0 0 8px #0ea5e9;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    input, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+    }
+    input[type=text], input[type=datetime-local] {
+      background: #0f172a;
+      color: #f1f5f9;
+      box-shadow: inset 0 0 6px rgba(56,189,248,0.4);
+    }
+    input:focus {
+      outline: none;
+      box-shadow: inset 0 0 10px rgba(56,189,248,0.7);
+    }
+    button {
+      background: #38bdf8;
+      color: #0f172a;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #0ea5e9;
+      transform: translateY(-2px);
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      font-size: 14px;
+    }
+    .filters button {
+      background: transparent;
+      color: #38bdf8;
+      padding: 4px 10px;
+    }
+    .filters button.active {
+      background: #0c4a6e;
+      border-radius: 6px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      background: #0f172a;
+      box-shadow: 0 0 8px rgba(56,189,248,0.2);
+    }
+    li.overdue {
+      box-shadow: 0 0 12px rgba(239,68,68,0.8);
+      border-left: 4px solid #ef4444;
+    }
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .done {
+      text-decoration: line-through;
+      color: #94a3b8;
+    }
+    .due {
+      font-size: 12px;
+      color: #facc15;
+      margin-top: 4px;
+    }
+    .actions button {
+      background: transparent;
+      color: #f87171;
+      font-size: 16px;
+      margin-left: 8px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 500px){
+      .controls { flex-direction: column; gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🕒 To-Do with Deadlines</h1>
+    <form id="task-form">
+      <input id="task-input" type="text" placeholder="Enter a task" required />
+      <input id="task-date" type="datetime-local" />
+      <button type="submit">Add Task</button>
+    </form>
+
+    <div class="controls">
+      <span id="task-count">0 tasks</span>
+      <div class="filters">
+        <button data-filter="all" class="active">All</button>
+        <button data-filter="active">Active</button>
+        <button data-filter="done">Completed</button>
+      </div>
+      <button id="clear-all" style="background:#f87171;color:#fff;">Clear All</button>
+    </div>
+
+    <ul id="task-list"></ul>
+  </div>
+
+  <script>
+    const form = document.getElementById('task-form');
+    const input = document.getElementById('task-input');
+    const dateInput = document.getElementById('task-date');
+    const list = document.getElementById('task-list');
+    const taskCount = document.getElementById('task-count');
+    const filters = document.querySelectorAll('.filters button');
+    const clearAllBtn = document.getElementById('clear-all');
+
+    let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+    let currentFilter = "all";
+
+    function saveTasks(){
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function render(){
+      list.innerHTML = '';
+      let filteredTasks = tasks.filter(t => {
+        if(currentFilter === "active") return !t.done;
+        if(currentFilter === "done") return t.done;
+        return true;
+      });
+
+      filteredTasks.forEach((task, index) => {
+        const li = document.createElement('li');
+
+        // top row with text + actions
+        const topRow = document.createElement('div');
+        topRow.className = 'top-row';
+
+        const span = document.createElement('span');
+        span.textContent = task.text;
+        if(task.done) span.classList.add('done');
+        span.addEventListener('click', () => {
+          tasks[index].done = !tasks[index].done;
+          saveTasks();
+          render();
+        });
+
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '✖';
+        delBtn.addEventListener('click', () => {
+          tasks.splice(index,1);
+          saveTasks();
+          render();
+        });
+        actions.appendChild(delBtn);
+
+        topRow.appendChild(span);
+        topRow.appendChild(actions);
+
+        li.appendChild(topRow);
+
+        // due date
+        if(task.due){
+          const due = document.createElement('div');
+          due.className = 'due';
+          const dueDate = new Date(task.due);
+          due.textContent = "Due: " + dueDate.toLocaleString();
+
+          if(!task.done && dueDate < new Date()){
+            li.classList.add("overdue");
+          }
+
+          li.appendChild(due);
+        }
+
+        list.appendChild(li);
+      });
+
+      let activeCount = tasks.filter(t => !t.done).length;
+      taskCount.textContent = `${activeCount} task${activeCount !== 1 ? 's' : ''} left`;
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      const due = dateInput.value;
+      if(!text) return;
+      tasks.push({text, due, done:false});
+      input.value = '';
+      dateInput.value = '';
+      saveTasks();
+      render();
+    });
+
+    filters.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filters.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        render();
+      });
+    });
+
+    clearAllBtn.addEventListener('click', () => {
+      if(confirm("Clear all tasks?")){
+        tasks = [];
+        saveTasks();
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
